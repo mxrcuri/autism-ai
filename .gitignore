@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+cache/
+*.npz
+*.pkl
+backend/storage/raw_videos/test_video.mp4
+
