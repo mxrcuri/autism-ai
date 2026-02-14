@@ -2,15 +2,14 @@ from pipelines.step5_model.dream_loader import load_user_sessions
 from pipelines.step5_model.dataset import WindowSequenceDataset
 from pipelines.step5_model.train import train_autoencoder
 from pipelines.step5_model.score import reconstruction_error
+
 from pipelines.step3_pose_gaze.dream_adapter import load_dream_sequence
-from pipelines.step3_pose_gaze.extract import run_step3
 from pipelines.step4_features.extract import extract_features
-from pipelines.step2_preprocessing.preprocess import preprocess_video
+from pipelines.step4_features.cache import load_step4, save_step4
 
 # ---------------- CONFIG ----------------
 DREAM_ROOT = "/home/kriti/Downloads/snd1156-1-1"
 SEQ_LEN = 10
-
 
 # ---------------- LOAD DATA ----------------
 users = load_user_sessions(DREAM_ROOT)
@@ -19,18 +18,34 @@ user_features = {}
 
 for user_id, sessions in users.items():
     feats = []
-    #for session in sessions:
-    #    sequence = run_step3(session)
-    #    feats.extend(extract_features(sequence))
-    #user_features[user_id] = feats
-    
 
+    print(f"[STEP 5] User {user_id}: {len(sessions)} sessions")
 
-    for session in sessions:
-        print(f"Processing {session}")
+    for i, session in enumerate(sessions, 1):
+
+        # Cache check
+        cached = load_step4(session)
+        if cached is not None:
+            feats.extend(cached)
+            print(f"[STEP 5] Session {i}/{len(sessions)} → cache")
+            continue
+
+        # Heavy path
         sequence = load_dream_sequence(session)
-        feats.extend(extract_features(sequence))
+        if not sequence:
+            print(f"[STEP 5] Session {i}/{len(sessions)} → skipped")
+            continue
+
+        features = extract_features(sequence)
+        if features:
+            save_step4(session, features)
+            feats.extend(features)
+
+        print(f"[STEP 5] Session {i}/{len(sessions)} → processed")
+
     user_features[user_id] = feats
+    print(f"[STEP 5] User {user_id} done ({len(feats)} windows)")
+
 
 
 # ---------------- USER SPLIT ----------------

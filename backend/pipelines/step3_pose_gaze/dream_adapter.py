@@ -10,8 +10,15 @@ def load_dream_sequence(json_path):
     - DREAM 'sholder' typo
     """
 
-    with open(json_path, "r") as f:
-        data = json.load(f)
+    try:
+        with open(json_path, "r") as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        print(f"[SKIP] Corrupted JSON: {json_path}")
+        return []
+    except Exception as e:
+        print(f"[SKIP] Failed to load {json_path}: {e}")
+        return []
 
     skeleton = data.get("skeleton", {})
     eye = data.get("eye_gaze", {})
