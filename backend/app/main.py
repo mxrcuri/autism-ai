@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 
-# --- Data Models (Shared) ---
+# 1. Shared Data Models
+# Note: In a larger app, move these to a 'backend/app/models.py' file
 class Frame(BaseModel):
     valid: bool
     pose: Optional[Dict[str, Any]] = None
@@ -14,8 +15,10 @@ class Payload(BaseModel):
     fps: float
     sequence: List[Frame]
 
-app = FastAPI()
+# 2. App Initialization
+app = FastAPI(title="Autism AI Backend")
 
+# 3. CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -24,10 +27,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Important: Import the router AFTER defining Payload if you use relative imports
+# 4. Router Imports
+# Using relative imports. Ensure you are running from the /backend/ directory
 from .routes.infer import router as infer_router
-app.include_router(infer_router)
+from .routes.assessments import router as assessment_router
+
+# 5. Route Registration
+app.include_router(infer_router, tags=["Inference"])
+app.include_router(assessment_router, prefix="/assessments", tags=["Assessments"])
 
 @app.get("/")
-def root():
-    return {"status": "backend running"}
+async def root():
+    return {
+        "status": "backend running",
+        "version": "1.0.0",
+        "endpoints": ["/infer", "/assessments/submit-quiz", "/assessments/results/{id}"]
+    }
