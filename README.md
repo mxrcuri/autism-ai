@@ -81,6 +81,3 @@ Traditional diagnostic methods for developmental delays are often subjective, ex
 - [ ] Longitudinal outcome tracking with surprise curve visualizations.
 
 ---
-
-### **Technical Contact**
-*Developed by [Your Name]* | [Portfolio] | [LinkedIn]
