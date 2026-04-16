@@ -1,4 +1,4 @@
-# Sparkle Labs: AI-Powered Early Screening 🧩
+# 🧩 Sparkle Labs: Multimodal AI Behavioral Intervention System
 ### *Aster AI Adventure Guide — Learn. Grow. Sparkle.*
 
 [![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
@@ -6,78 +6,100 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-**Sparkle Labs** is a professional-grade clinical decision support system designed to modernize early developmental screening for Autism. By combining **Edge AI (MediaPipe)**, **Temporal Deep Learning (TCN-VAE)**, and **RAG-based Generative AI**, Sparkle Labs transforms subjective clinical observations into objective, privacy-preserving digital biomarkers.
+Sparkle Labs is a privacy-first, full-stack application designed for early behavioral intervention (based on the Early Start Denver Model - ESDM). It transforms passive screen time into proactive developmental awareness by gamifying clinical therapy data and utilizing a zero-blocking asynchronous RAG pipeline to generate hyper-personalized daily missions.
 
 ---
 
-## 🌟 Project Vision
-Traditional diagnostic methods for developmental delays are often subjective, expensive, and delayed. Sparkle Labs bridges this gap by:
-- **Gamifying Assessment**: Removing clinical stigma through "Aster," an AI Adventure Guide.
-- **Privacy-First Engineering**: Extracting behavioral features (gaze, pose, motion) entirely in the browser—no raw video ever touches the server.
-- **Clinical Alignment**: Grounding therapy recommendations in the **Early Start Denver Model (ESDM)**.
+## 🏗️ Architecture Overview
+
+The platform operates on a strict, unbroken stateful data lineage (**UserSession → FeatureData → InferenceResult → TherapyPlan**) ensuring clinical traceability and deterministic LLM guardrails.
+
+1.  **Multimodal Extraction (Edge)**: Next.js frontend captures user interactions safely via client-side MediaPipe (visual features) and Web Audio APIs, ensuring raw media never leaves the device unnecessarily.
+2.  **Deviation Estimation (Backend)**: FastAPI ingests abstract feature vectors, piping them through a custom Temporal Convolutional Network with a Variational Autoencoder (**TCN-VAE**) to calculate behavioral anomalies via Mahalanobis distance.
+3.  **Smart Clinical Retrieval (RAG)**: Inference flags trigger a local ChromaDB vector database to retrieve the top clinically validated ESDM exercises using SentenceTransformer embeddings.
+4.  **Deterministic Generation**: The native AsyncOpenAI client synthesizes the retrieved context into structured, parent-friendly JSON missions. A strict Python validation layer audits the output and stores both the `plan_json` and `retrieved_context_json` natively in PostgreSQL for hallucination debugging.
 
 ---
 
-## 🏗️ Technical Architecture
+## 🚀 Key Features
 
-### 1. The Inference Pipeline (Vision & Pose)
-- **Edge Preprocessing**: Uses MediaPipe Tasks on the client side to extract real-time gaze variance, head pose stability, and motor symmetry.
-- **Deep Learning Model**: A **Temporal Convolutional Network (TCN) Autoencoder** on the backend analyzes temporal "surprise."
-- **Anomaly Detection**: Quantifies behavioral deviations from normative task baselines (trained on the DREAM dataset).
+### 🧠 Multimodal Behavioral Analysis
+- **Eye Gaze tracking** and **Pose Estimation** via MediaPipe.
+- **Speech and vocal pattern analysis** (CHILDES-inspired).
+- **Parent questionnaire integration** for holistic assessment.
+- **Temporal modeling** via TCN-VAE to capture dynamic behavioral shifts.
 
-### 2. RAG-Based Therapy Planning
-- **Vector Database**: Clinical exercises from ESDM are vectorized using `sentence-transformers` and stored in **ChromaDB**.
-- **Agentic AI**: When an anomaly is detected, a LangChain-style agent retrieves relevant clinical strategies and uses **GPT-4o-mini** to generate a personalized, parent-friendly therapy plan.
+### 🔍 Anomaly Detection Engine
+- **Mahalanobis distance-based** deviation scoring for rigorous statistical flagging.
+- **Temporal window aggregation** to analyze behavior over time.
+- **Confidence gating** to reduce false positives by filtering low-quality captures.
 
-### 3. Full-Stack Foundation
-- **Backend**: FastAPI with asynchronous database management via **SQLAlchemy** and **AsyncPG**.
-- **Auth**: Secure authentication powered by **Argon2** password hashing and **JWT** tokens.
-- **Dashboard**: High-performance React (Next.js) dashboard featuring custom-designed assets and real-time telemetry.
+### 🤖 RAG-based Therapy Planning
+- **Local ChromaDB** vector store pre-loaded with ESDM clinical exercises.
+- **Semantic retrieval** using high-dimensional `sentence-transformer` embeddings.
+- **Async LLM generation** (GPT-4o-mini) for real-time responsiveness.
+- **Structured JSON outputs** for seamless UI rendering.
+
+### 🛡️ Reliability & Safety Layer
+- **JSON Schema Validation**: Every AI response is audited via `json.loads` and Pydantic.
+- **Hallucination Guardrails**: Prompts are anchored strictly in retrieved clinical text.
+- **Deterministic Design**: Optimized prompt engineering ensures consistent, professional advice.
+
+### ⚙️ Core Engineering Excellence
+- **Privacy-Preserving Edge Inference**: Real-time tracking executes entirely in the browser. Only lightweight feature vectors reach the backend.
+- **Sub-Second AI Orchestration**: Replaces synchronous LLM blocking with an `await`-driven flow, supporting massive concurrency with minimal latency.
+- **Closed-Loop Feedback**: Therapy generation is dynamically anchored by historical feedback, ensuring the system learns and adapts.
+- **Insight Dashboard**: Professional-grade React visualization of longitudinal behavioral patterns.
 
 ---
 
-## 🚀 Getting Started
+## 🛠️ Tech Stack
 
-### Backend Setup
-1. **Navigate & Environment**:
-   ```bash
-   cd backend
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
+-   **Backend Engine**: Python, FastAPI, SQLAlchemy, asyncpg (PostgreSQL)
+-   **GenAI & Vector Storage**: Local ChromaDB, LangChain (Ingestion), AsyncOpenAI (gpt-4o-mini)
+-   **Machine Learning**: PyTorch, MediaPipe, OpenCV, TCN-VAE, Librosa
+-   **Frontend UI**: Next.js 14, React, TailwindCSS, HSL-tailored premium UI
+
+---
+
+## ⚙️ Detailed Setup & Configuration
+
+### 1. Database Setup (PostgreSQL)
+You need a local PostgreSQL instance running.
+1. Create a new database:
+   ```sql
+   CREATE DATABASE behavioural_db;
    ```
-2. **Database Initialization**:
-   - Ensure PostgreSQL is running.
-   - Run the ingestion script to build your local therapy knowledge base:
-     ```bash
-     python scripts/build_chroma_db.py
-     ```
-3. **Run**:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+2. Ensure you have a user with permission to create tables.
 
-### Frontend Setup
-1. **Install & Run**:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-2. **Access**: Open `http://localhost:3000/dashboard`
+### 2. Environment Configuration (`.env`)
+Create a `.env` file in the `backend/` directory:
+```env
+DATABASE_URL=postgresql+asyncpg://<YOUR_USER>:<YOUR_PASS>@localhost:5432/behavioural_db
+OPENAI_API_KEY=sk-proj-your-actual-api-key
+SECRET_KEY=generate-a-long-random-string-for-jwt
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+```
 
----
+### 3. Execution Steps
+**Backend:**
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python scripts/build_chroma_db.py  # Builds the therapy vector index
+uvicorn app.main:app --reload
+```
 
-## 🛠️ Security & Compliance
-- **Zero-Storage Policy**: No raw audio or video is stored.
-- **Encryption**: sensitive credentials are managed via environment variables and excluded from Version Control.
-- **Audit Trails**: PostgreSQL backend maintains structured clinical records for longitudinal tracking.
-
----
-
-## 📈 Roadmap & Scientific Positioning
-- [ ] Integration of Childes & ASDBank datasets for normative audio prosody.
-- [ ] Multi-agent clinical support for therapist collaboration.
-- [ ] Longitudinal outcome tracking with surprise curve visualizations.
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
+
+*Developed with a focus on Ethical AI, Clinical Precision, and Data Privacy.*
