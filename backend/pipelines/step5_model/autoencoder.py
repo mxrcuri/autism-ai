@@ -1,10 +1,8 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from .tcn import TCN   # the TCN we finalized earlier
+from .tcn import TCN
 
-
-class TCNAutoencoder(nn.Module):
+class TCN_VAE(nn.Module):
     def __init__(
         self,
         feature_dim,
@@ -15,14 +13,18 @@ class TCNAutoencoder(nn.Module):
     ):
         super().__init__()
 
-        # -------- Encoder --------
-        self.encoder = TCN(
+        # -------- Encoder (Temporal Extraction) --------
+        self.encoder_base = TCN(
             in_features=feature_dim,
             hidden_ch=hidden_ch,
-            emb_dim=emb_dim,
+            emb_dim=hidden_ch,  # Output hidden state, not final embedding
             levels=levels,
             dropout=dropout
         )
+
+        # -------- Variational Bottleneck --------
+        self.fc_mu = nn.Linear(hidden_ch, emb_dim)
+        self.fc_logvar = nn.Linear(hidden_ch, emb_dim)
 
         # -------- Decoder --------
         self.decoder = nn.Sequential(
@@ -31,17 +33,31 @@ class TCNAutoencoder(nn.Module):
             nn.Linear(hidden_ch, feature_dim)
         )
 
-    def forward(self, x, return_embedding=False):
+    def reparameterize(self, mu, logvar):
+        if self.training:
+            std = torch.exp(0.5 * logvar)
+            eps = torch.randn_like(std)
+            return mu + eps * std
+        return mu  # Deterministic output for inference
+
+    def forward(self, x):
         """
         x: [B, T, F]
         """
-        z = self.encoder(x)             # [B, emb_dim]
-        recon = self.decoder(z)         # [B, F]
+        # 1. Temporal encoding
+        hidden = self.encoder_base(x)       # [B, hidden_ch]
+        
+        # 2. Extract latent distributions
+        mu = self.fc_mu(hidden)             # [B, emb_dim]
+        logvar = self.fc_logvar(hidden)     # [B, emb_dim]
+        
+        # 3. Reparameterization trick
+        z = self.reparameterize(mu, logvar) # [B, emb_dim]
 
-        # expand recon across time (simple but stable)
+        # 4. Decode
+        recon = self.decoder(z)             # [B, F]
+
+        # expand recon across time assuming time-invariant bottleneck
         recon = recon.unsqueeze(1).expand(-1, x.shape[1], -1)
 
-        if return_embedding:
-            return recon, z
-        return recon
-
+        return recon, mu, logvar, z

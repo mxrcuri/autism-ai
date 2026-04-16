@@ -19,7 +19,7 @@ def reconstruction_error(model, dataset):
             x = x.float().unsqueeze(0).to(device)
 
             # Forward pass
-            recon = model(x)
+            recon, mu, logvar, z = model(x)
 
             # Compute MSE reconstruction error
             err = torch.mean((recon - x) ** 2).item()

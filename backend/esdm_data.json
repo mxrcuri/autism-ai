@@ -1,0 +1,26 @@
+[
+  {
+    "domain": "Joint Attention",
+    "activity_name": "Turn-Taking in Sensory Social Routines",
+    "clinical_objective": "Increase the child's communication to initiate, respond to, and continue social interactions through eye contact, facial expressions, and gestures.",
+    "instructions": "Engage in a joint activity where attention is focused on each other rather than objects (like peek-a-boo or singing). Pause the routine abruptly and wait expectantly. Do not resume until the child makes eye contact, smiles, or gestures to request continuing the game."
+  },
+  {
+    "domain": "Motor Imitation",
+    "activity_name": "Imitating Actions with Objects",
+    "clinical_objective": "Help the child learn how to appropriately use and interact with physical objects by mirroring adult actions.",
+    "instructions": "Sit face-to-face with the child, ensuring you both have identical objects (e.g., two toy cars or two blocks). Begin by imitating the child's actions with your materials and excitedly labeling the action. Then, perform a new simple action (like crashing the car) and hand them the object, prompting them to copy you."
+  },
+  {
+    "domain": "Expressive Communication",
+    "activity_name": "Giving Objects to Get Help",
+    "clinical_objective": "Teach a non-verbal or minimally verbal child to actively request assistance using a physical exchange.",
+    "instructions": "Set up an activity that requires adult assistance, such as putting a highly desired toy inside a clear plastic container with a tight lid, or handing them a juice box they cannot open. Give the child the object. When they struggle, elicit the 'give' by offering an open palm. The goal is for them to hand it to you while looking at your face."
+  },
+  {
+    "domain": "Vocal Imitation",
+    "activity_name": "Action-Word Pairing",
+    "clinical_objective": "Child imitates a single vowel or consonant sound during physical play.",
+    "instructions": "During physical play, pair a distinct action with an exaggerated, simple sound (e.g., saying 'Boom!' when blocks fall, or 'Wheee!' when sliding). Wait expectantly for the child to attempt the vocal sound before you repeat the physical action."
+  }
+]

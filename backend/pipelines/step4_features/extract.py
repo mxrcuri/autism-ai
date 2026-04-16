@@ -18,8 +18,8 @@ def extract_features(
     stride_sec=1,
     task_name=None
 ):
-    window_size = window_sec * fps
-    stride = stride_sec * fps
+    window_size = int(round(window_sec * fps))
+    stride      = int(round(stride_sec * fps))
 
     windows = sliding_windows(sequence, window_size, stride)
     feature_vectors = []

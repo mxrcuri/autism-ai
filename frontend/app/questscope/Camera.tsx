@@ -26,9 +26,9 @@ import { estimateGaze } from "@/lib/gaze";
 
 type SequenceFrame = {
   valid: boolean;
-  pose: any | null;
-  head: any | null;
-  gaze: any | null;
+  skeleton: Record<string, number[]> | null;
+  eye_gaze: Record<string, number | null> | null;
+  head_gaze: Record<string, number | null> | null; // Keeps original head pitch/yaw mapping for DREAM
 };
 
 export default function Camera() {
@@ -46,11 +46,15 @@ export default function Camera() {
     let sequence: SequenceFrame[] = [];
 
     const RECORDING_DURATION_MS = 10000;
+    // TARGET_FPS is the max we'll try to capture — real FPS will be lower
+    // and is measured accurately at the end. Min acceptable: 7 FPS.
     const TARGET_FPS = 15;
+    const MIN_FPS = 7;
     const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
     let lastFrameTime = 0;
     let startTime = 0;
+    let firstFrameTime = 0; // track when first frame actually landed
 
     async function setup() {
       await initFaceDetection();
@@ -78,6 +82,7 @@ export default function Camera() {
 
       setStatus("Recording...");
       startTime = performance.now();
+      firstFrameTime = 0; // reset; set on first frame capture
 
       loop();
     }
@@ -93,6 +98,9 @@ export default function Camera() {
       if (now - lastFrameTime >= FRAME_INTERVAL) {
         lastFrameTime = now;
 
+        // Track when first frame actually lands (for accurate FPS)
+        if (firstFrameTime === 0) firstFrameTime = now;
+
         // ---- STEP 1: VALIDITY ----
         processFrameValidity(
           videoRef.current,
@@ -106,73 +114,99 @@ export default function Camera() {
             ? validMask[validMask.length - 1]
             : false;
 
-        // ---- STEP 2: BODY POSE ----
+        // ---- STEP 2: BODY POSE (SKELETON) ----
         sendPoseFrame(videoRef.current);
-        const pose = isValid ? getLatestPose() : null;
+        const skeleton = isValid ? getLatestPose() : null;
 
         // ---- STEP 3: FACE LANDMARKS ----
         sendFaceLandmarkFrame(videoRef.current);
         const faceMesh = getLatestFaceLandmarks();
 
-        // ---- STEP 4: HEAD POSE ----
-        const head = isValid
+        // ---- STEP 4: HEAD GAZE ----
+        const head_gaze = isValid
           ? extractHeadPose(faceMesh, isValid)
           : null;
 
-        // ---- STEP 5: GAZE ----
-        const gaze = head ? estimateGaze(head) : null;
+        // ---- STEP 5: EYE GAZE ----
+        const eye_gaze = isValid ? estimateGaze(faceMesh) : null;
 
         // ---- STORE FRAME ----
         sequence.push({
           valid: isValid,
-          pose: isValid ? pose : null,
-          head: isValid ? head : null,
-          gaze: isValid ? gaze : null,
+          skeleton: isValid ? skeleton : null,
+          head_gaze: isValid ? head_gaze : null,
+          eye_gaze: isValid ? eye_gaze : null,
         });
       }
 
       if (now - startTime >= RECORDING_DURATION_MS) {
+        // Measure FPS from the actual span between first and last frame,
+        // not the nominal recording duration — more accurate under load.
+        const elapsedSec =
+          firstFrameTime > 0
+            ? (now - firstFrameTime) / 1000
+            : RECORDING_DURATION_MS / 1000;
+
+        const actualFps = sequence.length / elapsedSec;
+
         const decision = evaluateVideoQuality(
           validMask,
           stats,
-          50,
+          Math.round(MIN_FPS * (RECORDING_DURATION_MS / 1000)), // min valid frames
           0.7,
           3.0,
-          TARGET_FPS
+          actualFps
         );
 
-        const actualFps =
-          sequence.length / (RECORDING_DURATION_MS / 1000);
+        console.log(
+          `Recording done: ${sequence.length} frames @ ${actualFps.toFixed(1)} FPS | ${decision.reason}`
+        );
+
+        // Reject if FPS was too low for meaningful inference
+        if (actualFps < MIN_FPS) {
+          setStatus("Finished");
+          setResult(
+            `Failed: FPS too low (${actualFps.toFixed(1)} < ${MIN_FPS}). Try better lighting or a faster device.`
+          );
+          return;
+        }
+
+        if (!decision.usable) {
+          setStatus("Finished");
+          setResult(`Video quality check failed: ${decision.reason}`);
+          // Still send to backend for logging even if not usable
+        }
 
         const payload = {
-          fps: actualFps,
+          fps: parseFloat(actualFps.toFixed(2)), // e.g. 13.4
           sequence: sequence,
         };
-        fetch("http://localhost:8000/infer", {
+        
+        const token = localStorage.getItem("token");
+
+        fetch("http://localhost:8000/api/v1/infer/video", {
           method: "POST",
-          headers: {
+          headers: { 
             "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
           },
           body: JSON.stringify(payload),
         })
           .then((res) => res.json())
           .then((data) => {
             console.log("Backend response:", data);
+            setResult((prev) =>
+              prev + ` | Score: ${data.score ?? data.detail ?? "N/A"}`
+            );
           })
           .catch((err) => {
             console.error("POST failed:", err);
           });
-        
 
-        setStatus("Finished");
-        setResult(
-          `Usable: ${decision.usable} | Reason: ${decision.reason}`
-        );
-
-        console.log("FINAL PAYLOAD:", payload);
-        console.log("Total frames:", sequence.length);
-        console.log("Actual FPS:", actualFps);
-
+        setStatus(`Finished (${actualFps.toFixed(1)} FPS, ${sequence.length} frames)`);
+        if (decision.usable) {
+          setResult(`Usable: true | Reason: OK`);
+        }
 
         return;
       }
@@ -208,3 +242,4 @@ export default function Camera() {
     </div>
   );
 }
+

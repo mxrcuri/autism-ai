@@ -32,3 +32,4 @@ Thumbs.db
 # Cache
 .cache/
 
+backend/credentials_secret.txt

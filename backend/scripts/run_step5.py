@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from pipelines.step5_model.dream_loader import load_user_sessions
 from pipelines.step5_model.dataset import WindowSequenceDataset
 from pipelines.step5_model.train import train_autoencoder
